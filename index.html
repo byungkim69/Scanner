@@ -8,22 +8,50 @@
 </head>
 <body>
 
+<!-- 🔐 로그인 화면 -->
+<div id="login-screen" class="login-container">
+    <h2>🔒 SOUND CAT ACCESS</h2>
+    <input type="password" id="password-input" placeholder="비밀번호 입력">
+    <button id="login-btn">ENTER</button>
+    <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
+</div>
+
+<!-- 📷 실제 앱 (비밀번호 맞아야 보임) -->
+<div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
-    <!-- 카메라 영상 -->
     <video id="video" autoplay playsinline></video>
-<img id="freeze-image" style="display:none; width:100%; max-width:400px; border-radius:12px; border:3px solid #333;">
+    <img id="freeze-image" style="display:none; width:100%; max-width:400px; border-radius:12px; border:3px solid #333;">
 
     <h3>스캔된 바코드</h3>
     <div id="barcode-result" class="barcode-output"></div>
 
-    <!-- 결과 출력 영역 -->
     <div id="product-info" class="result-box"></div>
 
-    <!-- 다시 스캔 버튼 -->
     <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
 
     <script type="module" src="script.js"></script>
+</div>
+
+<script>
+    const APP_PASSWORD = "soundcat"; // 🔑 변경 가능
+
+    document.getElementById("login-btn").addEventListener("click", () => {
+        const input = document.getElementById("password-input").value;
+
+        if (input === APP_PASSWORD) {
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("app").style.display = "block";
+        } else {
+            document.getElementById("login-error").style.display = "block";
+        }
+    });
+
+    // Enter 치면 로그인 되게
+    document.getElementById("password-input").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") document.getElementById("login-btn").click();
+    });
+</script>
+
 </body>
 </html>
-
