@@ -8,6 +8,8 @@ const refreshBtn = document.getElementById("refresh-btn");
 let scanner = new BrowserMultiFormatReader();
 let stream = null; // 카메라 스트림 저장
 
+const API_KEY = "soundcat2025";  // 🔥 네가 지정한 API Key
+
 // 📷 스캐너 시작 함수
 async function startScanner() {
     try {
@@ -38,7 +40,9 @@ function handleScan(barcode) {
     resultElem.textContent = barcode;
     refreshBtn.style.display = "block";
 
-    const url = "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=" + barcode;
+    const url =
+        "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode="
+        + barcode + "&key=" + API_KEY;
 
     fetch(url)
         .then(res => res.json())
@@ -53,13 +57,18 @@ function handleScan(barcode) {
                     <p><b>인수:</b> ₩${data.buy}</p>
                     <p><b>재고:</b> ${data.stock}</p>
                 `;
-            } else {
+            } else if (data.status === "not_found") {
                 productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
+            } else {
+                productArea.innerHTML = `<h3>⚠ 오류: ${data.message}</h3>`;
             }
+        })
+        .catch(err => {
+            productArea.innerHTML = `<h3>🚨 통신 오류</h3><p>${err}</p>`;
         });
 }
 
-// 🔄 다시 스캔 버튼
+// 🔄 다시 스캔 버튼 기능
 refreshBtn.addEventListener("click", () => {
     productArea.innerHTML = "";
     resultElem.textContent = "";
