@@ -10,13 +10,17 @@
 
     <h2>📷 바코드 스캐너</h2>
 
-    <!-- 카메라 영상 위치 -->
-    <video id="video" autoplay style="width:100%; max-width:400px;"></video>
+    <!-- 카메라 영상 -->
+    <video id="video" autoplay playsinline></video>
 
-    <p><b>스캔된 바코드:</b></p>
-    <div id="barcode-result" style="font-size:20px; font-weight:bold;"></div>
+    <h3>스캔된 바코드</h3>
+    <div id="barcode-result" class="barcode-output"></div>
 
-    <div id="product-info"></div>
+    <!-- 결과 출력 영역 -->
+    <div id="product-info" class="result-box"></div>
+
+    <!-- 다시 스캔 버튼 -->
+    <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
 
     <script type="module" src="script.js"></script>
 </body>
