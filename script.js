@@ -2,38 +2,44 @@ import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/br
 
 const videoElem = document.getElementById("video");
 const resultElem = document.getElementById("barcode-result");
+const productArea = document.getElementById("product-info");
 
 let scanner = new BrowserMultiFormatReader();
 
-// 카메라 켜고 스캔 시작
-scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
-    if (result) {
-        console.log("바코드 감지:", result.text);
-        resultElem.textContent = result.text;
-        lookup(result.text); // 인식되면 제품 조회 실행
-    }
-});
+// 🔥 네 API URL
+function lookup(barcode) {
+    const url = "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=" + barcode;
 
-// ---- Google Sheet 조회 ----
-async function lookup(barcode) {
-    const url = `https://script.google.com/macros/s/AKfycbymZKqCzNpr7kqBscZiIG8aAyrMXjd5he6zAivuxB_2dM6YMFZ0AU6CbZnOTpiSpCAjJA/exec?barcode=${barcode}`; // ← 중요
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            console.log("응답:", data);
 
-    const response = await fetch(url);
-    const data = await response.json();
-
-    const productArea = document.getElementById("product-info");
-
-    if (data.status === "ok") {
-        productArea.innerHTML = `
-            <h3>✔ 조회 성공</h3>
-            <p><b>상품명:</b> ${data.product}</p>
-            <p><b>소비자가:</b> ${data.price}</p>
-            <p><b>1개월 써보기:</b> ${data.try1month}</p>
-            <p><b>인수:</b> ${data.buy}</p>
-            <p><b>재고:</b> ${data.stock}</p>
-        `;
-    } else {
-        productArea.innerHTML = `<h3>❌ 해당 바코드 없음</h3>`;
-    }
+            if (data.status === "ok") {
+                productArea.innerHTML = `
+                    <h3>✔ 조회 성공</h3>
+                    <p><b>상품명:</b> ${data.product}</p>
+                    <p><b>소비자가:</b> ${data.price}</p>
+                    <p><b>1개월 써보기:</b> ${data.try1month}</p>
+                    <p><b>인수:</b> ${data.buy}</p>
+                    <p><b>재고:</b> ${data.stock}</p>
+                `;
+            } else if (data.status === "not_found") {
+                productArea.innerHTML = `<h3>❌ 등록되지 않은 바코드입니다.</h3>`;
+            } else {
+                productArea.innerHTML = `<h3>⚠ 오류 발생: ${data.message}</h3>`;
+            }
+        })
+        .catch(err => {
+            productArea.innerHTML = `<h3>🚨 통신 오류 발생</h3><p>${err}</p>`;
+        });
 }
 
+
+// 📷 카메라 켜고 스캔 시작
+scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
+    if (result) {
+        resultElem.textContent = result.text;
+        lookup(result.text);
+    }
+});
