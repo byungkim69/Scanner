@@ -1,55 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script type="module">
-    import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
 
-    let codeReader = new BrowserMultiFormatReader();
+const videoElem = document.getElementById("video");
+const resultElem = document.getElementById("barcode-result");
 
-    window.onload = () => {
-      const videoElem = document.getElementById("video");
+let scanner = new BrowserMultiFormatReader();
 
-      // 카메라 켜기 + 바코드 스캔
-      codeReader.decodeFromVideoDevice(null, videoElem, (result, err) => {
-        if (result) {
-          document.getElementById("result").innerText = result.text;
-          lookup(result.text);
-        }
-      });
-    };
-
-    // 바코드 → 구글시트 조회
-    async function lookup(barcode) {
-      const url = `https://script.google.com/macros/s/AKfycbxovfUZWiG1lgvhd8W5xhYURE7fTqTPEsuKPIoyUm7BTRzpUE7jW3512GS4EDKvVMAuBQ/exec?barcode=${barcode}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const area = document.getElementById("info");
-      if (data.status === "ok") {
-        area.innerHTML = `
-          <h3>조회 결과</h3>
-          <p><b>상품명:</b> ${data.product}</p>
-          <p><b>소비자가:</b> ${data.price}</p>
-          <p><b>1개월 써보기:</b> ${data.try1month}</p>
-          <p><b>인수:</b> ${data.buy}</p>
-          <p><b>재고:</b> ${data.stock}</p>
-        `;
-      } else {
-        area.innerHTML = "<h3>조회 결과 없음</h3>";
-      }
+// 카메라 켜고 스캔 시작
+scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
+    if (result) {
+        console.log("바코드 감지:", result.text);
+        resultElem.textContent = result.text;
+        lookup(result.text); // 인식되면 제품 조회 실행
     }
-  </script>
-</head>
-<body>
+});
 
-  <h2>📷 바코드 스캐너</h2>
-  <video id="video" style="width:100%; max-width:400px;" autoplay></video>
+// ---- Google Sheet 조회 ----
+async function lookup(barcode) {
+    const url = `https://script.google.com/macros/s/AKfycbxovfUZWiG1lgvhd8W5xhYURE7fTqTPEsuKPIoyUm7BTRzpUE7jW3512GS4EDKvVMAuBQ/exec?barcode=${barcode}`; // ← 중요
 
-  <h3>스캔된 코드</h3>
-  <div id="result" style="font-size:20px; font-weight:bold;"></div>
+    const response = await fetch(url);
+    const data = await response.json();
 
-  <div id="info"></div>
+    const productArea = document.getElementById("product-info");
 
-</body>
-</html>
+    if (data.status === "ok") {
+        productArea.innerHTML = `
+            <h3>✔ 조회 성공</h3>
+            <p><b>상품명:</b> ${data.product}</p>
+            <p><b>소비자가:</b> ${data.price}</p>
+            <p><b>1개월 써보기:</b> ${data.try1month}</p>
+            <p><b>인수:</b> ${data.buy}</p>
+            <p><b>재고:</b> ${data.stock}</p>
+        `;
+    } else {
+        productArea.innerHTML = `<h3>❌ 해당 바코드 없음</h3>`;
+    }
+}
