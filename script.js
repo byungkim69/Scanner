@@ -43,3 +43,5 @@ scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
         lookup(result.text);
     }
 });
+
+console.log("스캔값:", barcode);
