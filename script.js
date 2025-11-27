@@ -16,7 +16,7 @@ scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
 
 // ---- Google Sheet 조회 ----
 async function lookup(barcode) {
-    const url = `https://script.google.com/macros/s/AKfycbxovfUZWiG1lgvhd8W5xhYURE7fTqTPEsuKPIoyUm7BTRzpUE7jW3512GS4EDKvVMAuBQ/exec?barcode=${barcode}`; // ← 중요
+    const url = `https://script.google.com/macros/s/AKfycbymZKqCzNpr7kqBscZiIG8aAyrMXjd5he6zAivuxB_2dM6YMFZ0AU6CbZnOTpiSpCAjJA/exec?barcode=${barcode}`; // ← 중요
 
     const response = await fetch(url);
     const data = await response.json();
@@ -36,3 +36,4 @@ async function lookup(barcode) {
         productArea.innerHTML = `<h3>❌ 해당 바코드 없음</h3>`;
     }
 }
+
