@@ -6,25 +6,38 @@ const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 
 let scanner = new BrowserMultiFormatReader();
-let scanning = true;
+let stream = null; // 카메라 스트림 저장
 
-// 📷 카메라 + 스캔
-scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
-    if (result && scanning) {
-        scanning = false; // 스캔 멈춤
-        videoElem.pause(); // 영상 멈추기 (freeze 기능)
+// 📷 스캐너 시작 함수
+async function startScanner() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        videoElem.srcObject = stream;
 
-        const barcode = result.text;
-        resultElem.textContent = barcode;
-        lookup(barcode);
-
-        // 버튼 보이기
-        refreshBtn.style.display = "block";
+        scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
+            if (result) {
+                stopScanner(); // 스캔 즉시 멈춤
+                handleScan(result.text);
+            }
+        });
+    } catch (err) {
+        console.error("카메라 불러오기 오류:", err);
     }
-});
+}
 
-// 🔥 API 요청
-function lookup(barcode) {
+// 📷 스캐너 정지 함수
+function stopScanner() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+}
+
+// 🔍 조회 + 화면 표시
+function handleScan(barcode) {
+    resultElem.textContent = barcode;
+    refreshBtn.style.display = "block";
+
     const url = "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=" + barcode;
 
     fetch(url)
@@ -41,25 +54,18 @@ function lookup(barcode) {
                     <p><b>재고:</b> ${data.stock}</p>
                 `;
             } else {
-                productArea.innerHTML = `
-                    <h3>❌ 등록되지 않은 상품입니다.</h3>
-                    <p>관리자에게 등록 요청하세요.</p>
-                `;
+                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
             }
-        })
-        .catch(err => {
-            productArea.innerHTML = `
-                <h3>🚨 서버 오류</h3>
-                <p>${err}</p>
-            `;
         });
 }
 
-// 🔄 새로 스캔 버튼 기능
+// 🔄 다시 스캔 버튼
 refreshBtn.addEventListener("click", () => {
-    scanning = true;
     productArea.innerHTML = "";
     resultElem.textContent = "";
-    videoElem.play(); // 카메라 다시 실행
     refreshBtn.style.display = "none";
+    startScanner(); // 🔥 카메라 + 스캐너 다시 실행
 });
+
+// 첫 실행
+startScanner();
