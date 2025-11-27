@@ -9,20 +9,49 @@ h2 {
     margin-bottom: 10px;
 }
 
+video {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+    border: 3px solid #333;
+    background: black;
+}
+
 .barcode-output {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     margin: 10px auto;
-    color: #333;
+    padding: 8px;
+    color: #222;
 }
 
 .result-box {
     background: white;
     padding: 15px;
     border-radius: 10px;
-    margin-top: 15px;
+    margin-top: 20px;
     width: 90%;
     max-width: 400px;
     display: inline-block;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    text-align: left;
+    font-size: 18px;
+    line-height: 1.7em;
+}
+
+#refresh-btn {
+    background: #007bff;
+    padding: 14px 20px;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    margin-top: 20px;
+    font-size: 20px;
+    cursor: pointer;
+    width: 90%;
+    max-width: 300px;
+}
+
+#refresh-btn:active {
+    opacity: 0.7;
 }
