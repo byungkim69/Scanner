@@ -6,28 +6,47 @@ const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 
 let scanner = new BrowserMultiFormatReader();
-let stream = null; // 카메라 스트림 저장
+let stream = null;
+const API_KEY = "soundcat2025";
 
-const API_KEY = "soundcat2025";  // 🔥 네가 지정한 API Key
-
-// 📷 스캐너 시작 함수
 async function startScanner() {
+    videoElem.style.display = "block"; 
+    document.getElementById("freeze-image").style.display = "none";
+
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         videoElem.srcObject = stream;
 
         scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
             if (result) {
-                stopScanner(); // 스캔 즉시 멈춤
+                freezeFrame(); 
                 handleScan(result.text);
             }
         });
     } catch (err) {
-        console.error("카메라 불러오기 오류:", err);
+        console.error("카메라 오류:", err);
     }
 }
 
-// 📷 스캐너 정지 함수
+function freezeFrame() {
+    stopScanner();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = videoElem.videoWidth;
+    canvas.height = videoElem.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+
+    const img = document.getElementById("freeze-image");
+    img.src = canvas.toDataURL("image/png");
+
+    videoElem.style.display = "none";
+    img.style.display = "block";
+
+    refreshBtn.style.display = "block";
+}
+
 function stopScanner() {
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -35,10 +54,8 @@ function stopScanner() {
     }
 }
 
-// 🔍 조회 + 화면 표시
 function handleScan(barcode) {
     resultElem.textContent = barcode;
-    refreshBtn.style.display = "block";
 
     const url =
         "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode="
@@ -57,24 +74,18 @@ function handleScan(barcode) {
                     <p><b>인수:</b> ₩${data.buy}</p>
                     <p><b>재고:</b> ${data.stock}</p>
                 `;
-            } else if (data.status === "not_found") {
-                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
             } else {
-                productArea.innerHTML = `<h3>⚠ 오류: ${data.message}</h3>`;
+                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
             }
-        })
-        .catch(err => {
-            productArea.innerHTML = `<h3>🚨 통신 오류</h3><p>${err}</p>`;
         });
 }
 
-// 🔄 다시 스캔 버튼 기능
 refreshBtn.addEventListener("click", () => {
     productArea.innerHTML = "";
     resultElem.textContent = "";
     refreshBtn.style.display = "none";
-    startScanner(); // 🔥 카메라 + 스캐너 다시 실행
+
+    startScanner();
 });
 
-// 첫 실행
 startScanner();
