@@ -7,9 +7,38 @@ const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
 
 const API_KEY = "soundcat2025";
+
+let cameraStream = null;
 let scanning = false;
 
-async function startScanner() {
+// ------- 1️⃣ 카메라 권한 요청 + 영상 표시 -------
+
+async function startCamera() {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+
+        videoElem.srcObject = cameraStream;
+        videoElem.setAttribute("playsinline", true);
+        videoElem.setAttribute("autoplay", true);
+        videoElem.setAttribute("muted", true);
+
+        await videoElem.play();
+
+        // 카메라 준비되면 Quagga 실행
+        startScanner();
+        
+    } catch (err) {
+        console.error("❌ 카메라 접근 실패:", err);
+        resultElem.textContent = "⚠ 카메라 접근 불가 (브라우저 권한 확인)";
+    }
+}
+
+// ------- 2️⃣ Quagga 스캔 로직 -------
+
+function startScanner() {
     if (scanning) return;
     scanning = true;
 
@@ -22,12 +51,7 @@ async function startScanner() {
     Quagga.init({
         inputStream: {
             type: "LiveStream",
-            target: videoElem,
-            constraints: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
+            target: videoElem
         },
         decoder: {
             readers: [
@@ -39,13 +63,11 @@ async function startScanner() {
                 "codabar_reader"
             ]
         },
-        locate: true,
-        numOfWorkers: navigator.hardwareConcurrency || 4,
-    }, err => {
+        locate: true
+    }, (err) => {
         if (err) {
             console.error("❌ Quagga 초기화 오류:", err);
-            resultElem.textContent = "⚠ 카메라 오류 또는 권한 거부됨";
-            scanning = false;
+            resultElem.textContent = "⚠ 스캐너 초기화 실패";
             return;
         }
 
@@ -53,16 +75,12 @@ async function startScanner() {
         resultElem.textContent = "📷 스캔하세요...";
     });
 
-    Quagga.onDetected(onBarcodeDetected);
+    Quagga.onDetected(handleDetected);
 }
 
-async function onBarcodeDetected(result) {
+async function handleDetected(result) {
     const code = result.codeResult.code;
-
-    // 덜완성된 값 걸러내기 (Quagga의 흔한 문제)
     if (!code || code.length < 6) return;
-
-    console.log("📌 감지됨:", code);
 
     stopScanner();
     await freezeFrame();
@@ -73,10 +91,7 @@ async function onBarcodeDetected(result) {
     fetchProductData(code);
 }
 
-function stopScanner() {
-    Quagga.stop();
-    scanning = false;
-}
+// ------- 3️⃣ Freeze Frame -------
 
 async function freezeFrame() {
     await new Promise(res => setTimeout(res, 120));
@@ -84,7 +99,6 @@ async function freezeFrame() {
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
     canvas.height = videoElem.videoHeight;
-
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
 
@@ -92,6 +106,8 @@ async function freezeFrame() {
     videoElem.style.display = "none";
     freezeImg.style.display = "block";
 }
+
+// ------- 4️⃣ API 호출 -------
 
 function fetchProductData(code) {
     const url =
@@ -116,7 +132,20 @@ function fetchProductData(code) {
         });
 }
 
-refreshBtn.addEventListener("click", startScanner);
+// ------- 5️⃣ 스캐너 종료 -------
 
-// 초반 자동 시작
-setTimeout(startScanner, 400);
+function stopScanner() {
+    Quagga.stop();
+    scanning = false;
+}
+
+// ------- 6️⃣ 다시 스캔 -------
+
+refreshBtn.addEventListener("click", () => {
+    startCamera();
+});
+
+// 🚀 반드시 사용자 동작 후 실행
+document.addEventListener("click", () => {
+    if (!cameraStream) startCamera();
+}, { once: true });
