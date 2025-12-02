@@ -16,25 +16,25 @@
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
-<!-- 📷 실제 앱 (비밀번호 맞아야 보임) -->
+<!-- 📷 스캐너 화면 -->
 <div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
     <video id="video" autoplay playsinline></video>
-    <img id="freeze-image" style="display:none; width:100%; max-width:400px; border-radius:12px; border:3px solid #333;">
 
     <h3>스캔된 바코드</h3>
     <div id="barcode-result" class="barcode-output"></div>
-
     <div id="product-info" class="result-box"></div>
 
     <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
-
-    <script type="module" src="script.js"></script>
 </div>
 
+<!-- 🧠 라이브러리 + 스크립트 -->
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script type="module" src="script.js"></script>
+
 <script>
-    const APP_PASSWORD = "soundcat"; // 🔑 변경 가능
+    const APP_PASSWORD = "soundcat";
 
     document.getElementById("login-btn").addEventListener("click", () => {
         const input = document.getElementById("password-input").value;
@@ -47,7 +47,6 @@
         }
     });
 
-    // Enter 치면 로그인 되게
     document.getElementById("password-input").addEventListener("keypress", (e) => {
         if (e.key === "Enter") document.getElementById("login-btn").click();
     });
