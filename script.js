@@ -22,29 +22,53 @@ async function startScanner() {
     await videoElem.play();
 
     Quagga.init({
-        inputStream: {
-            type: "LiveStream",
-            target: videoElem
+    inputStream: {
+        type: "LiveStream",
+        target: videoElem,
+        constraints: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
         },
-        decoder: {
-            readers: [
-                "code_128_reader",
-                "code_39_reader",
-                "ean_reader",
-                "ean_8_reader",
-                "itf_reader",
-                "codabar_reader"
-            ]
-        },
-        locate: true
-    }, err => {
-        if (err) {
-            console.error(err);
-            resultElem.textContent = "⚠ 스캐너 초기화 오류";
-            return;
+        area: { // 인식 영역 확대
+            top: "0%",
+            right: "0%",
+            left: "0%",
+            bottom: "0%"
         }
-        Quagga.start();
-    });
+    },
+    locator: {
+        patchSize: "medium", // small | medium | large (large=느리지만 정확)
+        halfSample: false
+    },
+    numOfWorkers: navigator.hardwareConcurrency || 4,
+    frequency: 10,
+    decoder: {
+        readers: [
+            { format: "ean_reader", config: {} },
+            { format: "code_128_reader", config: {} },
+            { format: "code_39_reader", config: {} },
+            { format: "itf_reader", config: {} },
+            { format: "codabar_reader", config: {} }
+        ],
+        debug: {
+            drawBoundingBox: true,
+            showFrequency: true,
+            drawScanline: true,
+            showPattern: true
+        }
+    },
+    locate: true
+}, (err) => {
+    if (err) {
+        console.error(err);
+        resultElem.textContent = "⚠ 스캐너 초기화 오류";
+        return;
+    }
+    Quagga.start();
+    resultElem.textContent = "📷 바코드를 카메라 앞에 가져가세요";
+});
+
 
     Quagga.onDetected(data => {
         const code = data.codeResult.code;
@@ -95,3 +119,4 @@ async function freezeFrame() {
 refreshBtn.addEventListener("click", startScanner);
 
 startScanner();
+
