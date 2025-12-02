@@ -1,56 +1,47 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>바코드 스캐너</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- 🔐 로그인 화면 -->
 <div id="login-screen" class="login-container">
     <h2>🔒 SOUND CAT ACCESS</h2>
-    <input type="password" id="password-input" placeholder="비밀번호 입력">
+    <input type="password" id="password-input" placeholder="비밀번호 입력" />
     <button id="login-btn">ENTER</button>
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
-<!-- 📷 실제 앱 -->
 <div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
-    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:12px;border:2px solid #333;"></video>
-    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border-radius:12px;border:3px solid #333;">
+    <video id="video" autoplay playsinline style="width:100%;max-width:400px;"></video>
+    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border:3px solid #333;" />
 
-    <h3>스캔된 바코드</h3>
-    <div id="barcode-result" class="barcode-output"></div>
-
-    <div id="product-info" class="result-box"></div>
-
-    <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
+    <div id="barcode-result"></div>
+    <div id="product-info"></div>
+    <button id="refresh-btn" style="display:none;">🔄 다시 스캔</button>
 </div>
 
-<!-- 🧠 Quagga + script.js -->
+<!-- 여기에서 반드시 Quagga 먼저 로드 -->
 <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-<script type="module" src="script.js"></script>
+
+<!-- 그리고 script.js -->
+<script src="script.js"></script>
 
 <script>
     const APP_PASSWORD = "soundcat";
 
     document.getElementById("login-btn").addEventListener("click", () => {
-        const input = document.getElementById("password-input").value;
-
-        if (input === APP_PASSWORD) {
+        if (document.getElementById("password-input").value === APP_PASSWORD) {
             document.getElementById("login-screen").style.display = "none";
             document.getElementById("app").style.display = "block";
         } else {
             document.getElementById("login-error").style.display = "block";
         }
-    });
-
-    document.getElementById("password-input").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") document.getElementById("login-btn").click();
     });
 </script>
 
