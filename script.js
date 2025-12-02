@@ -1,4 +1,4 @@
-import { BrowserMultiFormatReader, DecodeHintType } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+import Quagga from "https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js";
 
 const videoElem = document.getElementById("video");
 const resultElem = document.getElementById("barcode-result");
@@ -6,90 +6,80 @@ const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
 
-let scanner;
-let stream = null;
 const API_KEY = "soundcat2025";
-
-// 🔥 인식률 강화 옵션 (중요)
-const hints = new Map();
-hints.set(DecodeHintType.ASSUME_GS1, true);
-hints.set(DecodeHintType.TRY_HARDER, true);
-hints.set(DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
-
-scanner = new BrowserMultiFormatReader(hints);
+let scanning = false;
 
 async function startScanner() {
+    if (scanning) return;
+    scanning = true;
+
     freezeImg.style.display = "none";
     videoElem.style.display = "block";
     productArea.innerHTML = "";
-    resultElem.textContent = "";
+    resultElem.textContent = "📡 스캔 준비중...";
     refreshBtn.style.display = "none";
 
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: {
+    Quagga.init({
+        inputStream: {
+            type: "LiveStream",
+            target: videoElem,
+            constraints: {
                 facingMode: "environment",
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             }
-        });
+        },
+        decoder: {
+            readers: [
+                "code_128_reader",
+                "code_39_reader",
+                "ean_reader",
+                "ean_8_reader",
+                "itf_reader",
+                "codabar_reader"
+            ]
+        },
+        locate: true,
+        numOfWorkers: navigator.hardwareConcurrency || 4,
+    }, err => {
+        if (err) {
+            console.error("❌ Quagga 초기화 오류:", err);
+            resultElem.textContent = "⚠ 카메라 오류 또는 권한 거부됨";
+            scanning = false;
+            return;
+        }
 
-        videoElem.srcObject = stream;
+        Quagga.start();
+        resultElem.textContent = "📷 스캔하세요...";
+    });
 
-        scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
-            // result === 성공 / err === 그냥 진행
-            if (result) {
-                processScan(result.text);
-            }
-        });
-
-    } catch (error) {
-        console.error("📌 카메라 접근 오류:", error);
-        resultElem.textContent = "⚠ 카메라 권한을 허용해주세요";
-    }
+    Quagga.onDetected(onBarcodeDetected);
 }
 
-async function processScan(barcode) {
+async function onBarcodeDetected(result) {
+    const code = result.codeResult.code;
+
+    // 덜완성된 값 걸러내기 (Quagga의 흔한 문제)
+    if (!code || code.length < 6) return;
+
+    console.log("📌 감지됨:", code);
+
     stopScanner();
     await freezeFrame();
 
-    resultElem.textContent = barcode;
+    resultElem.textContent = `📌 바코드: ${code}`;
     refreshBtn.style.display = "block";
 
-    const url =
-        "https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=" +
-        barcode + "&key=" + API_KEY;
-
-    fetch(url)
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === "ok") {
-                productArea.innerHTML = `
-                    <h3>✔ 제품 정보</h3>
-                    <p><b>바코드:</b> ${data.barcode}</p>
-                    <p><b>상품명:</b> ${data.product}</p>
-                    <p><b>소비자가:</b> ₩${data.price}</p>
-                    <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
-                    <p><b>인수:</b> ₩${data.buy}</p>
-                    <p><b>재고:</b> ${data.stock}</p>
-                `;
-            } else {
-                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
-            }
-        });
+    fetchProductData(code);
 }
 
 function stopScanner() {
-    scanner.stopContinuousDecode();
-
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
+    Quagga.stop();
+    scanning = false;
 }
 
 async function freezeFrame() {
-    await new Promise(res => setTimeout(res, 80)); // 안정성 유지
+    await new Promise(res => setTimeout(res, 120));
 
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
@@ -103,6 +93,30 @@ async function freezeFrame() {
     freezeImg.style.display = "block";
 }
 
-refreshBtn.addEventListener("click", () => startScanner());
+function fetchProductData(code) {
+    const url =
+        `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${code}&key=${API_KEY}`;
 
-startScanner();
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === "ok") {
+                productArea.innerHTML = `
+                <h3>✔ 제품 정보</h3>
+                <p><b>바코드:</b> ${data.barcode}</p>
+                <p><b>상품명:</b> ${data.product}</p>
+                <p><b>소비자가:</b> ₩${data.price}</p>
+                <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
+                <p><b>인수:</b> ₩${data.buy}</p>
+                <p><b>재고:</b> ${data.stock}</p>
+                `;
+            } else {
+                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
+            }
+        });
+}
+
+refreshBtn.addEventListener("click", startScanner);
+
+// 초반 자동 시작
+setTimeout(startScanner, 400);
