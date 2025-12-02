@@ -1,4 +1,4 @@
-import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
+import { BrowserMultiFormatReader, DecodeHintType } from "https://cdn.jsdelivr.net/npm/@zxing/browser@latest/+esm";
 
 const videoElem = document.getElementById("video");
 const resultElem = document.getElementById("barcode-result");
@@ -6,9 +6,17 @@ const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
 
-let scanner = new BrowserMultiFormatReader();
+let scanner;
 let stream = null;
 const API_KEY = "soundcat2025";
+
+// 🔥 인식률 강화 옵션 (중요)
+const hints = new Map();
+hints.set(DecodeHintType.ASSUME_GS1, true);
+hints.set(DecodeHintType.TRY_HARDER, true);
+hints.set(DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+
+scanner = new BrowserMultiFormatReader(hints);
 
 async function startScanner() {
     freezeImg.style.display = "none";
@@ -18,20 +26,32 @@ async function startScanner() {
     refreshBtn.style.display = "none";
 
     try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "environment",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+
         videoElem.srcObject = stream;
 
         scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
-            if (result) processScan(result.text);
+            // result === 성공 / err === 그냥 진행
+            if (result) {
+                processScan(result.text);
+            }
         });
+
     } catch (error) {
-        console.error("카메라 접근 오류:", error);
+        console.error("📌 카메라 접근 오류:", error);
+        resultElem.textContent = "⚠ 카메라 권한을 허용해주세요";
     }
 }
 
 async function processScan(barcode) {
-    stopScanner(); // 카메라 먼저 멈춤
-    await freezeFrame(); // 화면 캡처
+    stopScanner();
+    await freezeFrame();
 
     resultElem.textContent = barcode;
     refreshBtn.style.display = "block";
@@ -60,6 +80,8 @@ async function processScan(barcode) {
 }
 
 function stopScanner() {
+    scanner.stopContinuousDecode();
+
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
         stream = null;
@@ -67,8 +89,7 @@ function stopScanner() {
 }
 
 async function freezeFrame() {
-    // 🔥 여기서 100ms 딜레이로 안정화
-    await new Promise(res => setTimeout(res, 100));
+    await new Promise(res => setTimeout(res, 80)); // 안정성 유지
 
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
@@ -82,8 +103,6 @@ async function freezeFrame() {
     freezeImg.style.display = "block";
 }
 
-refreshBtn.addEventListener("click", () => {
-    startScanner();
-});
+refreshBtn.addEventListener("click", () => startScanner());
 
 startScanner();
