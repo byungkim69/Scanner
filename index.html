@@ -16,25 +16,27 @@
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
-<!-- 📷 앱 -->
+<!-- 📷 스캐너 -->
 <div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
-    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:10px;border:2px solid #222;"></video>
-    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border-radius:10px;border:2px solid #222;" />
+    <button id="start-btn" style="padding:12px;margin-bottom:15px;">📷 카메라 시작</button>
+
+    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:10px;border:2px solid #333;display:none;"></video>
+    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border-radius:10px;border:2px solid #333;" />
 
     <h3>스캔된 바코드</h3>
     <div id="barcode-result"></div>
 
-    <div id="product-info"></div>
+    <div id="product-info" class="result-box"></div>
 
-    <button id="refresh-btn" style="display:none;">🔄 다시 스캔</button>
+    <button id="refresh-btn" style="display:none;padding:12px;">🔄 다시 스캔</button>
 </div>
 
-<!-- ZXing 라이브러리 -->
+<!-- ZXing -->
 <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest"></script>
 
-<!-- App script -->
+<!-- App JS -->
 <script src="script.js"></script>
 
 <script>
