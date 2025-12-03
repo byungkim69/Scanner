@@ -1,9 +1,11 @@
 const codeReader = new ZXing.BrowserMultiFormatReader();
+
 const videoElem = document.getElementById("video");
 const resultElem = document.getElementById("barcode-result");
 const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
+const startBtn = document.getElementById("start-btn");
 
 const API_KEY = "soundcat2025";
 
@@ -13,11 +15,11 @@ let scanning = false;
 async function startScanner() {
     scanning = true;
 
+    startBtn.style.display = "none";
     freezeImg.style.display = "none";
     videoElem.style.display = "block";
-    productArea.innerHTML = "";
-    resultElem.textContent = "📡 스캔 준비중...";
     refreshBtn.style.display = "none";
+    resultElem.textContent = "📡 카메라 활성화 중...";
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -32,9 +34,7 @@ async function startScanner() {
         await videoElem.play();
 
         codeReader.decodeFromVideoDevice(null, videoElem, (result, err) => {
-            if (result) {
-                processScan(result.text);
-            }
+            if (result) processScan(result.text);
         });
 
     } catch (err) {
@@ -62,8 +62,8 @@ async function processScan(barcode) {
     const url =
         `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
 
-    const res = await fetch(url);
-    const data = await res.json();
+    const response = await fetch(url);
+    const data = await response.json();
 
     if (data.status === "ok") {
         productArea.innerHTML = `
@@ -86,15 +86,12 @@ async function freezeFrame() {
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
     canvas.height = videoElem.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d").drawImage(videoElem, 0, 0, canvas.width, canvas.height);
 
     freezeImg.src = canvas.toDataURL("image/png");
     videoElem.style.display = "none";
     freezeImg.style.display = "block";
 }
 
+startBtn.addEventListener("click", startScanner);
 refreshBtn.addEventListener("click", startScanner);
-
-startScanner();
