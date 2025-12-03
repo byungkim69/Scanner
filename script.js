@@ -1,122 +1,100 @@
+const codeReader = new ZXing.BrowserMultiFormatReader();
 const videoElem = document.getElementById("video");
 const resultElem = document.getElementById("barcode-result");
 const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
 
-let stream = null;
 const API_KEY = "soundcat2025";
 
+let stream = null;
+let scanning = false;
+
 async function startScanner() {
+    scanning = true;
+
     freezeImg.style.display = "none";
     videoElem.style.display = "block";
     productArea.innerHTML = "";
-    resultElem.textContent = "📡 스캔 대기...";
+    resultElem.textContent = "📡 스캔 준비중...";
     refreshBtn.style.display = "none";
 
-    stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-    });
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        });
 
-    videoElem.srcObject = stream;
-    await videoElem.play();
+        videoElem.srcObject = stream;
+        await videoElem.play();
 
-    Quagga.init({
-    inputStream: {
-        type: "LiveStream",
-        target: videoElem,
-        constraints: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-        },
-        area: { // 인식 영역 확대
-            top: "0%",
-            right: "0%",
-            left: "0%",
-            bottom: "0%"
-        }
-    },
-    locator: {
-        patchSize: "medium", // small | medium | large (large=느리지만 정확)
-        halfSample: false
-    },
-    numOfWorkers: navigator.hardwareConcurrency || 4,
-    frequency: 10,
-    decoder: {
-        readers: [
-            { format: "ean_reader", config: {} },
-            { format: "code_128_reader", config: {} },
-            { format: "code_39_reader", config: {} },
-            { format: "itf_reader", config: {} },
-            { format: "codabar_reader", config: {} }
-        ],
-        debug: {
-            drawBoundingBox: true,
-            showFrequency: true,
-            drawScanline: true,
-            showPattern: true
-        }
-    },
-    locate: true
-}, (err) => {
-    if (err) {
+        codeReader.decodeFromVideoDevice(null, videoElem, (result, err) => {
+            if (result) {
+                processScan(result.text);
+            }
+        });
+
+    } catch (err) {
         console.error(err);
-        resultElem.textContent = "⚠ 스캐너 초기화 오류";
-        return;
+        resultElem.textContent = "⚠ 카메라 권한을 허용해주세요.";
     }
-    Quagga.start();
-    resultElem.textContent = "📷 바코드를 카메라 앞에 가져가세요";
-});
+}
 
-
-    Quagga.onDetected(data => {
-        const code = data.codeResult.code;
-        if (!code) return;
-        processScan(code);
-    });
+function stopScanner() {
+    codeReader.reset();
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    scanning = false;
 }
 
 async function processScan(barcode) {
     stopScanner();
     await freezeFrame();
 
-    resultElem.textContent = barcode;
+    resultElem.textContent = `📌 바코드: ${barcode}`;
     refreshBtn.style.display = "block";
 
-    const url = `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
+    const url =
+        `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
-    productArea.innerHTML = data.status === "ok"
-        ? `<h3>✔ 제품 정보</h3>
-           <p>제품명: ${data.product}</p>
-           <p>가격: ₩${data.price}</p>`
-        : `<h3>❌ 미등록 상품</h3>`;
-}
-
-function stopScanner() {
-    Quagga.stop();
-    if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
+    if (data.status === "ok") {
+        productArea.innerHTML = `
+            <h3>✔ 제품 정보</h3>
+            <p><b>바코드:</b> ${data.barcode}</p>
+            <p><b>상품명:</b> ${data.product}</p>
+            <p><b>소비자가:</b> ₩${data.price}</p>
+            <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
+            <p><b>인수:</b> ₩${data.buy}</p>
+            <p><b>재고:</b> ${data.stock}</p>
+        `;
+    } else {
+        productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
     }
 }
 
 async function freezeFrame() {
-    await new Promise(res => setTimeout(res, 100));
+    await new Promise(res => setTimeout(res, 120));
+
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
     canvas.height = videoElem.videoHeight;
+
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+
     freezeImg.src = canvas.toDataURL("image/png");
-    freezeImg.style.display = "block";
     videoElem.style.display = "none";
+    freezeImg.style.display = "block";
 }
 
 refreshBtn.addEventListener("click", startScanner);
 
 startScanner();
-
