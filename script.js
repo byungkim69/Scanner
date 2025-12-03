@@ -9,17 +9,17 @@ const freezeImg = document.getElementById("freeze-image");
 let stream = null;
 const API_KEY = "soundcat2025";
 
-// 🔥 디코딩 정확도 증가 옵션
+// 📌 인식률 강화 옵션
 const hints = new Map();
+hints.set(DecodeHintType.TRY_HARDER, true);
 hints.set(DecodeHintType.POSSIBLE_FORMATS, [
     BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
     BarcodeFormat.EAN_13,
     BarcodeFormat.EAN_8,
-    BarcodeFormat.CODE_39,
     BarcodeFormat.ITF,
     BarcodeFormat.CODABAR
 ]);
-hints.set(DecodeHintType.TRY_HARDER, true);
 
 let scanner = new BrowserMultiFormatReader(hints);
 
@@ -41,12 +41,12 @@ async function startScanner() {
 
         videoElem.srcObject = stream;
 
-        scanner.decodeFromVideoDevice(null, videoElem, (result, err) => {
+        scanner.decodeFromVideoDevice(null, videoElem, (result) => {
             if (result) processScan(result.text);
         });
+
     } catch (error) {
         console.error("카메라 접근 오류:", error);
-        resultElem.textContent = "⚠ 카메라 권한을 허용해주세요.";
     }
 }
 
@@ -63,32 +63,39 @@ async function processScan(barcode) {
     fetch(url)
         .then(r => r.json())
         .then(data => {
-            if (data.status === "ok") {
-                productArea.innerHTML = `
-                    <h3>✔ 제품 정보</h3>
-                    <p><b>바코드:</b> ${data.barcode}</p>
-                    <p><b>상품명:</b> ${data.product}</p>
-                    <p><b>소비자가:</b> ₩${data.price}</p>
-                    <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
-                    <p><b>인수:</b> ₩${data.buy}</p>
-                    <p><b>재고:</b> ${data.stock}</p>
-                `;
-            } else {
-                productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
-            }
+            productArea.innerHTML = data.status === "ok"
+                ? `
+                <h3>✔ 제품 정보</h3>
+                <p><b>바코드:</b> ${data.barcode}</p>
+                <p><b>상품명:</b> ${data.product}</p>
+                <p><b>소비자가:</b> ₩${data.price}</p>
+                <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
+                <p><b>인수:</b> ₩${data.buy}</p>
+                <p><b>재고:</b> ${data.stock}</p>`
+                : `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
         });
 }
 
 function stopScanner() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
+    stream?.getTracks().forEach(track => track.stop());
+    stream = null;
     scanner.reset();
 }
 
+async function ensureVideoReady() {
+    return new Promise((resolve) => {
+        const check = () => {
+            if (videoElem.videoWidth > 10 && videoElem.videoHeight > 10) resolve();
+            else setTimeout(check, 50);
+        };
+        check();
+    });
+}
+
 async function freezeFrame() {
-    await new Promise(res => setTimeout(res, 120));
+    await ensureVideoReady(); // ⬅ 여기가 핵심
+
+    await new Promise(res => setTimeout(res, 80));
 
     const canvas = document.createElement("canvas");
     canvas.width = videoElem.videoWidth;
@@ -97,7 +104,7 @@ async function freezeFrame() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
 
-    freezeImg.src = canvas.toDataURL("image/png");
+    freezeImg.src = canvas.toDataURL("image/jpeg", 0.9);
     videoElem.style.display = "none";
     freezeImg.style.display = "block";
 }
