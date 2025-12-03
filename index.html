@@ -1,51 +1,48 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>바코드 스캐너</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
 <div id="login-screen" class="login-container">
     <h2>🔒 SOUND CAT ACCESS</h2>
-    <input type="password" id="password-input" placeholder="비밀번호 입력">
+    <input type="password" id="password-input" placeholder="비밀번호 입력" />
     <button id="login-btn">ENTER</button>
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
 <div id="app" style="display:none;">
-    <h2>📷 바코드 촬영 스캐너</h2>
+    <h2>📷 바코드 스캐너</h2>
 
-    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:12px;display:none;"></video>
-    <img id="preview" style="display:none;width:100%;max-width:400px;border-radius:12px;" />
+    <video id="video" autoplay playsinline style="width:100%;max-width:400px;"></video>
+    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border:3px solid #333;" />
 
-    <!-- 📸 버튼 영역 -->
-    <div class="button-area">
-        <button id="capture-btn" class="primary-btn">📸 촬영하기</button>
-        <button id="retry-btn" class="secondary-btn" style="display:none;">🔄 다시 찍기</button>
-    </div>
-
-    <h3>스캔 결과</h3>
     <div id="barcode-result"></div>
-
     <div id="product-info"></div>
-
-    <script type="module" src="script.js"></script>
+    <button id="refresh-btn" style="display:none;">🔄 다시 스캔</button>
 </div>
 
-<script>
-const APP_PASSWORD = "soundcat";
+<!-- 여기에서 반드시 Quagga 먼저 로드 -->
+<script src="quagga.min.js"></script>
 
-document.getElementById("login-btn").addEventListener("click", () => {
-    if (document.getElementById("password-input").value === APP_PASSWORD) {
-        document.getElementById("login-screen").style.display = "none";
-        document.getElementById("app").style.display = "block";
-    } else {
-        document.getElementById("login-error").style.display = "block";
-    }
-});
+<!-- 그리고 script.js -->
+<script src="script.js"></script>
+
+<script>
+    const APP_PASSWORD = "soundcat";
+
+    document.getElementById("login-btn").addEventListener("click", () => {
+        if (document.getElementById("password-input").value === APP_PASSWORD) {
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("app").style.display = "block";
+        } else {
+            document.getElementById("login-error").style.display = "block";
+        }
+    });
 </script>
 
 </body>
