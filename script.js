@@ -1,95 +1,129 @@
-import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@latest/+esm";
-
-const API_KEY = "soundcat2025";
-const video = document.getElementById("video");
-const preview = document.getElementById("preview");
-const captureBtn = document.getElementById("capture-btn");
-const retryBtn = document.getElementById("retry-btn");
-const barcodeResult = document.getElementById("barcode-result");
+const videoElem = document.getElementById("video");
+const resultElem = document.getElementById("barcode-result");
 const productArea = document.getElementById("product-info");
+const refreshBtn = document.getElementById("refresh-btn");
+const freezeImg = document.getElementById("freeze-image");
 
 let stream = null;
-let scanner = new BrowserMultiFormatReader();
+const API_KEY = "soundcat2025";
 
-async function startCamera() {
+async function startScanner() {
+    freezeImg.style.display = "none";
+    videoElem.style.display = "block";
+    productArea.innerHTML = "";
+    resultElem.textContent = "📡 스캔 대기...";
+    refreshBtn.style.display = "none";
+
     stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" }
     });
 
-    video.srcObject = stream;
-    video.style.display = "block";
-    preview.style.display = "none";
-    retryBtn.style.display = "none";
-    barcodeResult.textContent = "";
-    productArea.innerHTML = "";
+    videoElem.srcObject = stream;
+    await videoElem.play();
+
+    Quagga.init({
+        inputStream: {
+            type: "LiveStream",
+            target: videoElem,
+            constraints: {
+                facingMode: "environment",
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            area: { // 인식 영역 확대
+                top: "0%",
+                right: "0%",
+                left: "0%",
+                bottom: "0%"
+            }
+        },
+        locator: {
+            patchSize: "large", // small | medium | large (large=느리지만 정확)
+            halfSample: false
+        },
+        numOfWorkers: navigator.hardwareConcurrency || 4,
+        frequency: 10,
+        decoder: {
+            readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "code_128_reader",
+                "code_39_reader",
+                "code_39_vin_reader",
+                "codabar_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "i2of5_reader",
+                "2of5_reader",
+                "code_93_reader",
+            ],
+            debug: {
+                drawBoundingBox: true,
+                showFrequency: true,
+                drawScanline: true,
+                showPattern: true
+            }
+        },
+        locate: true
+    }, (err) => {
+        if (err) {
+            console.error(err);
+            resultElem.textContent = "⚠ 스캐너 초기화 오류";
+            return;
+        }
+        Quagga.start();
+        resultElem.textContent = "📷 바코드를 카메라 앞에 가져가세요";
+    });
+
+
+    Quagga.onDetected((data) => {
+        // console.log(data);
+        const code = data.codeResult.code;
+        if (!code) return;
+        processScan(code);
+    });
 }
 
-async function captureImage() {
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+async function processScan(barcode) {
+    stopScanner();
+    await freezeFrame();
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
+    resultElem.textContent = barcode;
+    refreshBtn.style.display = "block";
 
-    // 🔥 이미지 전처리: grayscale + adaptive threshold
-    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let data = imageData.data;
-
-    // grayscale
-    for (let i = 0; i < data.length; i+=4) {
-        const gray = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
-        data[i] = gray;
-        data[i+1] = gray;
-        data[i+2] = gray;
-    }
-
-    // threshold (adaptive-ish)
-    let avg = 128;
-    for (let i = 0; i < data.length; i += 4) {
-        data[i] = data[i] > avg ? 255 : 0;
-        data[i+1] = data[i];
-        data[i+2] = data[i];
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-
-    const processedImage = canvas.toDataURL("image/png");
-    preview.src = processedImage;
-
-    video.style.display = "none";
-    preview.style.display = "block";
-    retryBtn.style.display = "block";
-
-    decodeBarcode(processedImage);
-}
-
-async function decodeBarcode(image) {
-    try {
-        const result = await scanner.decodeFromImage(undefined, image);
-        barcodeResult.textContent = `📌 바코드: ${result.text}`;
-        fetchProduct(result.text);
-    } catch {
-        barcodeResult.textContent = `❌ 인식 실패 (다시 촬영)`;
-    }
-}
-
-async function fetchProduct(barcode) {
     const url = `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
     productArea.innerHTML = data.status === "ok"
-        ? `
-        <h3>✔ 제품 정보</h3>
-        <p><b>상품명:</b> ${data.product}</p>
-        <p><b>가격:</b> ₩${data.price}</p>
-        <p><b>재고:</b> ${data.stock}</p>`
+        ? `<h3>✔ 제품 정보</h3>
+           <p>제품명: ${data.product}</p>
+           <p>가격: ₩${data.price}</p>`
         : `<h3>❌ 미등록 상품</h3>`;
 }
 
-captureBtn.addEventListener("click", captureImage);
-retryBtn.addEventListener("click", startCamera);
+function stopScanner() {
+    Quagga.stop();
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+}
 
-startCamera();
+async function freezeFrame() {
+    await new Promise(res => setTimeout(res, 100));
+    const canvas = document.createElement("canvas");
+    canvas.width = videoElem.videoWidth;
+    canvas.height = videoElem.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+    freezeImg.src = canvas.toDataURL("image/png");
+    freezeImg.style.display = "block";
+    videoElem.style.display = "none";
+}
+
+refreshBtn.addEventListener("click", startScanner);
+
+startScanner();
+
