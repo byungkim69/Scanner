@@ -8,28 +8,33 @@
 </head>
 <body>
 
+<!-- 🔐 로그인 -->
 <div id="login-screen" class="login-container">
     <h2>🔒 SOUND CAT ACCESS</h2>
-    <input type="password" id="password-input" placeholder="비밀번호 입력" />
+    <input type="password" id="password-input" placeholder="비밀번호 입력">
     <button id="login-btn">ENTER</button>
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
+<!-- 📷 앱 -->
 <div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
-    <video id="video" autoplay playsinline style="width:100%;max-width:400px;"></video>
-    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border:3px solid #333;" />
+    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:10px;border:2px solid #222;"></video>
+    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border-radius:10px;border:2px solid #222;" />
 
+    <h3>스캔된 바코드</h3>
     <div id="barcode-result"></div>
+
     <div id="product-info"></div>
+
     <button id="refresh-btn" style="display:none;">🔄 다시 스캔</button>
 </div>
 
-<!-- 여기에서 반드시 Quagga 먼저 로드 -->
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<!-- ZXing 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest"></script>
 
-<!-- 그리고 script.js -->
+<!-- App script -->
 <script src="script.js"></script>
 
 <script>
@@ -42,6 +47,10 @@
         } else {
             document.getElementById("login-error").style.display = "block";
         }
+    });
+
+    document.getElementById("password-input").addEventListener("keypress", e => {
+        if (e.key === "Enter") document.getElementById("login-btn").click();
     });
 </script>
 
