@@ -21,14 +21,16 @@
     <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:12px;display:none;"></video>
     <img id="preview" style="display:none;width:100%;max-width:400px;border-radius:12px;" />
 
-    <button id="capture-btn" style="margin-top:15px;">📸 촬영하기</button>
+    <!-- 📸 버튼 영역 -->
+    <div class="button-area">
+        <button id="capture-btn" class="primary-btn">📸 촬영하기</button>
+        <button id="retry-btn" class="secondary-btn" style="display:none;">🔄 다시 찍기</button>
+    </div>
 
     <h3>스캔 결과</h3>
     <div id="barcode-result"></div>
 
     <div id="product-info"></div>
-
-    <button id="retry-btn" style="display:none;">🔄 다시 찍기</button>
 
     <script type="module" src="script.js"></script>
 </div>
