@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>바코드 스캐너</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- 🔐 로그인 -->
+<!-- 🔐 로그인 화면 -->
 <div id="login-screen" class="login-container">
     <h2>🔒 SOUND CAT ACCESS</h2>
     <input type="password" id="password-input" placeholder="비밀번호 입력">
@@ -16,31 +16,31 @@
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
-<!-- 📷 스캔 UI -->
+<!-- 📷 실제 앱 (비밀번호 맞아야 보임) -->
 <div id="app" style="display:none;">
     <h2>📷 바코드 스캐너</h2>
 
-    <video id="video" autoplay playsinline muted style="width:100%;max-width:400px;border-radius:10px;border:2px solid #333;display:none;"></video>
-    <img id="freeze-image" style="display:none;width:100%;max-width:400px;border-radius:10px;border:2px solid #333;" />
+    <video id="video" autoplay playsinline style="width:100%; max-width:400px; border-radius:12px; border:2px solid #444;"></video>
+    <img id="freeze-image" style="display:none; width:100%; max-width:400px; border-radius:12px; border:3px solid #333;">
 
-    <h3>스캔 결과</h3>
-    <div id="barcode-result"></div>
-    <div id="product-info"></div>
+    <h3>스캔된 바코드</h3>
+    <div id="barcode-result" class="barcode-output"></div>
 
-    <button id="refresh-btn" style="display:none;padding:12px;">🔄 다시 스캔</button>
+    <div id="product-info" class="result-box"></div>
+
+    <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
+
+    <!-- 🚀 ZXing 최신 ES Module -->
+    <script type="module" src="script.js"></script>
 </div>
 
-<!-- ZXing -->
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest"></script>
-
-<!-- App script -->
-<script src="script.js"></script>
-
 <script>
-    const APP_PASSWORD = "soundcat";
+    const APP_PASSWORD = "soundcat"; // 🔑 변경 가능
 
     document.getElementById("login-btn").addEventListener("click", () => {
-        if (document.getElementById("password-input").value === APP_PASSWORD) {
+        const input = document.getElementById("password-input").value;
+
+        if (input === APP_PASSWORD) {
             document.getElementById("login-screen").style.display = "none";
             document.getElementById("app").style.display = "block";
         } else {
@@ -48,7 +48,8 @@
         }
     });
 
-    document.getElementById("password-input").addEventListener("keypress", e => {
+    // Enter key 로그인
+    document.getElementById("password-input").addEventListener("keypress", (e) => {
         if (e.key === "Enter") document.getElementById("login-btn").click();
     });
 </script>
