@@ -5,17 +5,24 @@ const resultElem = document.getElementById("barcode-result");
 const productArea = document.getElementById("product-info");
 const refreshBtn = document.getElementById("refresh-btn");
 const freezeImg = document.getElementById("freeze-image");
-const startBtn = document.getElementById("start-btn");
 
 const API_KEY = "soundcat2025";
 
 let stream = null;
 let scanning = false;
+let initialized = false;
+
+// ⭐ 핵심: 첫 화면 터치/클릭 감지 → 권한 요청
+document.addEventListener("click", async () => {
+    if (!initialized && document.getElementById("app").style.display === "block") {
+        initialized = true;
+        await startScanner();
+    }
+}, { once: true });
 
 async function startScanner() {
     scanning = true;
 
-    startBtn.style.display = "none";
     freezeImg.style.display = "none";
     videoElem.style.display = "block";
     refreshBtn.style.display = "none";
@@ -23,11 +30,7 @@ async function startScanner() {
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: "environment",
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            }
+            video: { facingMode: "environment" }
         });
 
         videoElem.srcObject = stream;
@@ -39,17 +42,16 @@ async function startScanner() {
 
     } catch (err) {
         console.error(err);
-        resultElem.textContent = "⚠ 카메라 권한을 허용해주세요.";
+        resultElem.textContent = "⚠ 카메라 권한 허용 필요";
     }
 }
 
 function stopScanner() {
     codeReader.reset();
     if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(t => t.stop());
         stream = null;
     }
-    scanning = false;
 }
 
 async function processScan(barcode) {
@@ -59,25 +61,17 @@ async function processScan(barcode) {
     resultElem.textContent = `📌 바코드: ${barcode}`;
     refreshBtn.style.display = "block";
 
-    const url =
-        `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
+    const url = `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
+    
+    const res = await fetch(url);
+    const data = await res.json();
 
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.status === "ok") {
-        productArea.innerHTML = `
-            <h3>✔ 제품 정보</h3>
-            <p><b>바코드:</b> ${data.barcode}</p>
-            <p><b>상품명:</b> ${data.product}</p>
-            <p><b>소비자가:</b> ₩${data.price}</p>
-            <p><b>1개월 써보기:</b> ₩${data.try1month}</p>
-            <p><b>인수:</b> ₩${data.buy}</p>
-            <p><b>재고:</b> ${data.stock}</p>
-        `;
-    } else {
-        productArea.innerHTML = `<h3>❌ 등록되지 않은 상품입니다.</h3>`;
-    }
+    productArea.innerHTML = (data.status === "ok")
+        ? `<h3>✔ 제품 정보</h3>
+            <p>상품명: ${data.product}</p>
+            <p>가격: ₩${data.price}</p>
+            <p>재고: ${data.stock}</p>`
+        : `<h3>❌ 미등록 상품</h3>`;
 }
 
 async function freezeFrame() {
@@ -93,5 +87,7 @@ async function freezeFrame() {
     freezeImg.style.display = "block";
 }
 
-startBtn.addEventListener("click", startScanner);
-refreshBtn.addEventListener("click", startScanner);
+refreshBtn.addEventListener("click", () => {
+    initialized = true;
+    startScanner();
+});
