@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- 🔐 로그인 화면 -->
 <div id="login-screen" class="login-container">
     <h2>🔒 SOUND CAT ACCESS</h2>
     <input type="password" id="password-input" placeholder="비밀번호 입력">
@@ -16,42 +15,35 @@
     <p id="login-error" style="color:red;display:none;">❌ 비밀번호 틀림</p>
 </div>
 
-<!-- 📷 실제 앱 (비밀번호 맞아야 보임) -->
 <div id="app" style="display:none;">
-    <h2>📷 바코드 스캐너</h2>
+    <h2>📷 바코드 촬영 스캐너</h2>
 
-    <video id="video" autoplay playsinline style="width:100%; max-width:400px; border-radius:12px; border:2px solid #444;"></video>
-    <img id="freeze-image" style="display:none; width:100%; max-width:400px; border-radius:12px; border:3px solid #333;">
+    <video id="video" autoplay playsinline style="width:100%;max-width:400px;border-radius:12px;display:none;"></video>
+    <img id="preview" style="display:none;width:100%;max-width:400px;border-radius:12px;" />
 
-    <h3>스캔된 바코드</h3>
-    <div id="barcode-result" class="barcode-output"></div>
+    <button id="capture-btn" style="margin-top:15px;">📸 촬영하기</button>
 
-    <div id="product-info" class="result-box"></div>
+    <h3>스캔 결과</h3>
+    <div id="barcode-result"></div>
 
-    <button id="refresh-btn" style="display:none;">🔄 다시 스캔하기</button>
+    <div id="product-info"></div>
 
-    <!-- 🚀 ZXing 최신 ES Module -->
+    <button id="retry-btn" style="display:none;">🔄 다시 찍기</button>
+
     <script type="module" src="script.js"></script>
 </div>
 
 <script>
-    const APP_PASSWORD = "soundcat"; // 🔑 변경 가능
+const APP_PASSWORD = "soundcat";
 
-    document.getElementById("login-btn").addEventListener("click", () => {
-        const input = document.getElementById("password-input").value;
-
-        if (input === APP_PASSWORD) {
-            document.getElementById("login-screen").style.display = "none";
-            document.getElementById("app").style.display = "block";
-        } else {
-            document.getElementById("login-error").style.display = "block";
-        }
-    });
-
-    // Enter key 로그인
-    document.getElementById("password-input").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") document.getElementById("login-btn").click();
-    });
+document.getElementById("login-btn").addEventListener("click", () => {
+    if (document.getElementById("password-input").value === APP_PASSWORD) {
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+    } else {
+        document.getElementById("login-error").style.display = "block";
+    }
+});
 </script>
 
 </body>
