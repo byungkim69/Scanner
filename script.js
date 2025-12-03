@@ -7,11 +7,28 @@ const freezeImg = document.getElementById("freeze-image");
 let stream = null;
 const API_KEY = "soundcat2025";
 
+// 버튼 생성 (UI 유지 위해 script에서 추가)
+let captureBtn = document.createElement("button");
+captureBtn.textContent = "📸 촬영하기";
+captureBtn.style = `
+    width:90%;
+    max-width:350px;
+    font-size:22px;
+    padding:18px;
+    margin-top:18px;
+    background:#ff7b00;
+    color:white;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+`;
+document.getElementById("app").appendChild(captureBtn);
+
 async function startScanner() {
     freezeImg.style.display = "none";
     videoElem.style.display = "block";
     productArea.innerHTML = "";
-    resultElem.textContent = "📡 스캔 대기...";
+    resultElem.textContent = "📡 준비됨 - 바코드 보이면 촬영하세요";
     refreshBtn.style.display = "none";
 
     stream = await navigator.mediaDevices.getUserMedia({
@@ -20,79 +37,61 @@ async function startScanner() {
 
     videoElem.srcObject = stream;
     await videoElem.play();
-
-    Quagga.init({
-        inputStream: {
-            type: "LiveStream",
-            target: videoElem,
-            constraints: {
-                facingMode: "environment",
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            },
-            area: { // 인식 영역 확대
-                top: "0%",
-                right: "0%",
-                left: "0%",
-                bottom: "0%"
-            }
-        },
-        locator: {
-            patchSize: "large", // small | medium | large (large=느리지만 정확)
-            halfSample: false
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
-        frequency: 10,
-        decoder: {
-            readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "code_128_reader",
-                "code_39_reader",
-                "code_39_vin_reader",
-                "codabar_reader",
-                "upc_reader",
-                "upc_e_reader",
-                "i2of5_reader",
-                "2of5_reader",
-                "code_93_reader",
-            ],
-            debug: {
-                drawBoundingBox: true,
-                showFrequency: true,
-                drawScanline: true,
-                showPattern: true
-            }
-        },
-        locate: true
-    }, (err) => {
-        if (err) {
-            console.error(err);
-            resultElem.textContent = "⚠ 스캐너 초기화 오류";
-            return;
-        }
-        Quagga.start();
-        resultElem.textContent = "📷 바코드를 카메라 앞에 가져가세요";
-    });
-
-
-    Quagga.onDetected((data) => {
-        // console.log(data);
-        const code = data.codeResult.code;
-        if (!code) return;
-        processScan(code);
-    });
 }
 
-async function processScan(barcode) {
-    stopScanner();
-    await freezeFrame();
+// 📸 촬영해서 이미지 스캔
+async function captureImage() {
+    const canvas = document.createElement("canvas");
+    canvas.width = videoElem.videoWidth;
+    canvas.height = videoElem.videoHeight;
 
-    resultElem.textContent = barcode;
-    refreshBtn.style.display = "block";
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
 
+    const imageDataURL = canvas.toDataURL("image/png");
+
+    freezeImg.src = imageDataURL;
+    freezeImg.style.display = "block";
+    videoElem.style.display = "none";
+
+    decodeBarcode(imageDataURL);
+}
+
+// 🔍 Quagga로 이미지 해석
+async function decodeBarcode(image) {
+    Quagga.decodeSingle(
+        {
+            src: image,
+            numOfWorkers: 1,
+            inputStream: { size: 800 },
+            decoder: {
+                readers: [
+                    "ean_reader",
+                    "code_128_reader",
+                    "code_39_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader",
+                    "code_93_reader"
+                ]
+            }
+        },
+        async function (result) {
+            if (result?.codeResult?.code) {
+                resultElem.textContent = `📌 바코드: ${result.codeResult.code}`;
+                await fetchProduct(result.codeResult.code);
+            } else {
+                resultElem.textContent = `❌ 바코드를 인식하지 못했습니다.`;
+            }
+            refreshBtn.style.display = "block";
+        }
+    );
+}
+
+// 제품 정보 호출
+async function fetchProduct(barcode) {
     const url = `https://script.google.com/macros/s/AKfycbw0Fdo4vgsc6uvD1qNeimy2yuvYZ4sjdXYrb-cFo3duk04U-mzZxL5AZwq3pjwjAEYHXQ/exec?barcode=${barcode}&key=${API_KEY}`;
-
     const res = await fetch(url);
     const data = await res.json();
 
@@ -103,27 +102,14 @@ async function processScan(barcode) {
         : `<h3>❌ 미등록 상품</h3>`;
 }
 
-function stopScanner() {
-    Quagga.stop();
-    if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-    }
-}
+// 🔄 재촬영
+refreshBtn.addEventListener("click", async () => {
+    freezeImg.style.display = "none";
+    await startScanner();
+});
 
-async function freezeFrame() {
-    await new Promise(res => setTimeout(res, 100));
-    const canvas = document.createElement("canvas");
-    canvas.width = videoElem.videoWidth;
-    canvas.height = videoElem.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
-    freezeImg.src = canvas.toDataURL("image/png");
-    freezeImg.style.display = "block";
-    videoElem.style.display = "none";
-}
+// 📸 버튼 클릭 → 촬영
+captureBtn.addEventListener("click", captureImage);
 
-refreshBtn.addEventListener("click", startScanner);
-
+// 최초 실행
 startScanner();
-
